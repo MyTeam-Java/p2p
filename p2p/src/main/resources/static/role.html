@@ -1,0 +1,162 @@
+
+    <div id="div_role"></div>
+    <!--弹出窗口，模态框-->
+    <div id="window_role_add" class="easyui-window" data-options="closed:true,modal:true" style="width: 350px;height: 400px;">
+        <form id="form_role_add" action="saveRole">
+            <input type="hidden" name="roid"/>
+            <input type="text" name="roname" class="textbox"/>
+        </form>
+        <div>
+            <button onclick="saveRole()">保存</button>
+        </div>
+    </div>
+    <div id="window_role_distribution" class="easyui-window" data-options="closed:true,modal:true" style="width: 350px;height: 400px;">
+        <div>
+            <ul id="role_tree" class="easyui-tree" data-options="url:'findAllResForRole',checkbox:true"></ul>
+        </div>
+        <div>
+            <button onclick="role_distribution()">分配</button>
+        </div>
+    </div>
+    <script>
+        var countRole = 0;
+        function getCountRole() {
+            $.get("getCountRole",function (count) {
+                countRole = count;
+            });
+        }
+        getCountRole();
+        function init_role() {
+            $("#div_role").datagrid({
+                title:"角色管理",
+                method:"get",
+                pagination:true,
+                columns:[[
+                    {field:"roid",checkbox:true},
+                    {field:"roname",title:"角色名",width:200}
+                ]],
+                toolbar:[
+                    {text:"添加",iconCls:"icon-add",handler:function () {toRole()}},
+                    {text:"修改",iconCls:"icon-edit",handler:function () {toEditRole()}},
+                    {text:"删除",iconCls:"icon-remove",handler:function () {deleteRole()}},
+                    {text:"分配权限",iconCls:"icon-search",handler:function () {toDistribution()}}
+                ]
+            });
+            loadRole(1,2);
+        }
+        function loadRole(page,size) {
+            $.get("findAllRole",{page:page,size:size},function (data) {
+                $("#div_role").datagrid("loadData",data);
+                var pager = $("#div_role").datagrid("getPager");
+                pager.pagination({
+                    total:countRole,
+                    pageNumber:page,
+                    pageSize:size,
+                    pageList:[2,5,10],
+                    onSelectPage:function (a, b) {
+                        loadRole(a,b);
+                    }
+                });
+            });
+        }
+        //$(init);
+        init_role();
+        //去分配权限
+        function toDistribution() {
+            var role = $("#div_role").datagrid("getSelected");
+            var json = JSON.stringify(role);
+            //显示已有权限
+            $.ajax({
+                url:"getResForRole",
+                method:"post",
+                data:json,
+                contentType:"application/json",
+                success:function (d) {
+                    $("#role_tree").tree("loadData",d);
+                    $("#window_role_distribution").window("open");
+                }
+            });
+
+        }
+
+        //分配角色
+        function role_distribution() {
+            //角色
+            var role = $("#div_role").datagrid("getSelected");
+
+            //资源
+            var res = $("#role_tree").tree("getChecked");
+            var as = [role.roid];
+            for (var i = 0; i < res.length; i++) {
+                as[i + 1] = res[i].id;
+            }
+            var json = JSON.stringify(as);
+            $.ajax({
+                url:"distribution",
+                method:"post",
+                data:json,
+                contentType:"application/json",
+                success:function (d) {
+                    alert(d);
+                }
+            });
+            $("#window_role_distribution").window("close");
+        }
+        //添加角色，此处添加和更新使用一个模态框，添加时的id设为0（id隐藏域）
+        function toRole() {
+            $("#form_role_add").form("load",{
+                roid:0,
+                roname:""
+            });
+            $("#window_role_add").window("open");
+        }
+        function saveRole() {
+            //提交到saveUser
+            $("#form_role_add").form("submit",{
+                success:function (d) {
+                    $("#div_role").datagrid("reload");
+                    $("#window_role_add").window("close");
+                }
+            });
+        }
+
+        //删除角色
+        function deleteRole() {
+            var roles = $("#div_role").datagrid("getSelections");
+
+            //定义数组
+            var ars = [];
+            for (var i=0;i<roles.length;i++) {
+                ars[i] = roles[i].roid;
+            }
+            //浏览器自带的json函数
+            var json = JSON.stringify(ars);
+            if(json.length) {
+                $.ajax({
+                    url:"deleteRole",
+                    method:"post",
+                    data:json,
+                    contentType:"application/json",
+                    success:function (d) {
+                        $("#div_role").datagrid("reload");
+                    }
+                });
+            }else{
+                $.messager.alert("系统提示","请选择至少一条数据");
+            }
+        }
+        //修改角色信息
+        function toEditRole() {
+            //获取要修改的数据
+            var role = $("#div_role").datagrid("getSelected");
+            if(role) {
+                $("#form_role_add").form("load",{
+                    roid:role.roid,
+                    account:role.roname
+                });
+                $("#window_role_add").window("open");
+            }else{
+                $.messager.alert("系统提示","请选择一条数据");
+            }
+        }
+    </script>

@@ -1,0 +1,133 @@
+<div id="div_res"></div>
+<!--弹出窗口，模态框-->
+<div id="window_res_add" class="easyui-window" data-options="closed:true,modal:true" style="width: 350px;height: 400px;">
+    <form id="form_res_add" action="saveRes" class="form-group">
+        <input type="hidden" name="id"/>
+        <div style="margin-bottom: 15px;" class="input-group">
+            <span class="input-group-addon">权限</span>
+            <input id="text" name="text" class="form-control" placeholder="请输入资源"/>
+        </div>
+        <div style="margin-bottom: 15px;" class="input-group">
+            <span class="input-group-addon">URL</span>
+            <input id="url" name="url"  class="form-control"/>
+        </div>
+        <div class="input-group">
+            <span class="input-group-addon">父节点</span>
+            <input class="easyui-combobox" id="parentId" name="parentId"
+                   data-options="url:'findAllResForComebox',method:'get',valueField:'id',textField:'text', multiple:false,
+panelHeight:'auto'">
+        </div>
+    </form>
+    <div>
+        <button class="btn btn-success btn-block" onclick="saveRes()">保存</button>
+    </div>
+</div>
+<script>
+    var countRes = 0;
+    function getCountRes() {
+        $.get("getCountRes",function (count) {
+            countRes = count;
+        });
+    }
+    getCountRes();
+    function init_res() {
+        $("#div_res").treegrid({
+            title:"资源管理",
+            //url:"findAllResource",
+            idField:"id",
+            treeField:"text",
+            method:"get",//默认post，改成get
+            pagination:true,
+            columns:[[
+                {field:"id",title:"序号",width:100,checkbox:true},
+                {field:"text",title:"名称",width:200},
+                {field:"url",title:"URL",width:200},
+                {field:"_parentId",title:"父节点",width:200}
+            ]],
+            toolbar:[
+                {text:"添加",iconCls:"icon-add",handler:function () {toRes()}},
+                {text:"修改",iconCls:"icon-edit",handler:function () {toEditRes()}},
+                {text:"删除",iconCls:"icon-remove",handler:function () {deleteRes()}}
+            ]
+        });
+        loadRes(1,15);
+    }
+    function loadRes(page, size) {
+        $.get("findAllResource",{page:page,size:size},function (data) {
+            $("#div_res").treegrid("loadData",data);
+            var pager = $("#div_res").treegrid("getPager");
+            pager.pagination({
+                total:countRes,
+                pageNumber:page,
+                pageSize:size,
+                pageList:[15,30,50],
+                onSelectPage:function (a, b) {
+                    loadRes(a, b);
+                }
+            })
+        })
+    }
+    //$(init);
+    init_res();
+    //添加资源，此处添加和更新使用一个模态框，添加时的id设为0（id隐藏域）
+    function toRes() {
+        $("#form_res_add").form("load",{
+            id:0,
+            text:"",
+            url:"",
+            parentId:""
+        });
+        $("#window_res_add").window("open");
+    }
+    function saveRes() {
+        //提交到saveUser
+        $("#form_res_add").form("submit",{
+            success:function (d) {
+                $("#div_res").treegrid("reload");
+                $("#window_res_add").window("close")
+            }
+        });
+    }
+
+    //删除资源
+    function deleteRes() {
+        var res = $("#div_res").datagrid("getSelections");
+
+        //定义数组
+        var ars = [];
+        for (var i=0;i<res.length;i++) {
+            ars[i] = res[i].roid;
+        }
+        //浏览器自带的json函数
+        var json = JSON.stringify(ars);
+        if(json.length) {
+            $.ajax({
+                url:"deleteRole",
+                method:"post",
+                data:json,
+                contentType:"application/json",
+                success:function (d) {
+                    $("#div_res").datagrid("reload");
+                }
+            });
+        }else{
+            $.messager.alert("系统提示","请选择至少一条数据");
+        }
+    }
+    //修改资源信息
+    function toEditRes() {
+        //获取要修改的数据
+        var res = $("#div_res").treegrid("getSelected");
+        if(res) {
+            $("#form_res_add").form("load",{
+                id:res.id,
+                text:res.text,
+                url:res.url,
+                parentId:res._parentId
+            });
+            $("#window_res_add").window("open");
+        }else{
+            $.messager.alert("系统提示","请选择一条数据");
+        }
+    }
+</script>

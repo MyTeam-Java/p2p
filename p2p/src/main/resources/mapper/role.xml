@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.money.dao.RoleDao">
+    <!--查询所有角色-->
+    <select id="findAllRole" resultType="com.money.entity.Role">
+        SELECT * FROM role limit #{start},#{size}
+    </select>
+    <!--添加角色-->
+    <insert id="saveRole" parameterType="com.money.entity.Role">
+        INSERT INTO role(roname) VALUES(#{roname})
+    </insert>
+    <!--删除角色-->
+    <delete id="deleteRole" parameterType="list">
+        DELETE FROM role WHERE roid IN
+        <foreach collection="list" item="x" open="(" separator="," close=")">
+            #{x}
+        </foreach>
+    </delete>
+    <!--修改角色信息-->
+    <update id="updateRole" parameterType="com.money.entity.Role">
+        UPDATE role SET roname=#{roname} WHERE roid=#{roid}
+    </update>
+    <select id="getCountRole" resultType="int">
+        SELECT COUNT(roname) FROM role
+    </select>
+    <!--删除旧资源-->
+    <delete id="deleteOldRes">
+        DELETE FROM role_res WHERE roid=#{roid}
+    </delete>
+
+    <!--获取角色对应的资源-->
+    <select id="getResForRole" parameterType="com.money.entity.Role" resultType="com.test.entity.Res">
+        SELECT re.* FROM role ro LEFT JOIN role_res rr ON ro.roid=rr.roid LEFT JOIN resource re ON rr.reid=re.id WHERE ro.roid=#{roid}
+    </select>
+    <!--分配新资源-->
+    <insert id="distribution" parameterType="map">
+        INSERT INTO role_res VALUES
+        <foreach collection="ps" item="x" separator=",">
+            (#{roid},#{x})
+        </foreach>
+    </insert>
+</mapper>

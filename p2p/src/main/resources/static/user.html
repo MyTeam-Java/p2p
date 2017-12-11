@@ -1,0 +1,180 @@
+
+    <div id="first"></div>
+    <!--弹出窗口，模态框-->
+    <div id="window_user_add" class="easyui-window" data-options="closed:true,modal:true" style="width: 350px;height: 400px;display: flex;flex-flow:column;justify-content: center;align-items: center">
+        <form id="form_user_add" action="saveUser" class="form-group">
+            <input type="hidden" name="uid"/>
+            <div style="margin-bottom: 16px;" class="input-group">
+                <span class="input-group-addon">账号</span>
+                <input id="account" name="account" class="form-control" placeholder="请输入账号"/>
+            </div>
+            <div class="input-group">
+                <span class="input-group-addon">密码</span>
+                <input id="pwd" name="pwd" type="password" class="form-control"/>
+            </div>
+        </form>
+        <div>
+            <button class="btn btn-success btn-block" onclick="saveUser()">保存</button>
+        </div>
+    </div>
+    <div id="window_user_role" class="easyui-window" data-options="closed:true,modal:true" style="width: 350px;height: 400px;">
+        <form id="form_user_role">
+            <input type="hidden" name="uid"/>
+        </form>
+        <div>
+            <button onclick="assignRoles()">分配</button>
+        </div>
+    </div>
+
+    <script>
+        var countUser = 0;
+        function getCount() {
+            $.get("getCount",function (count) {
+                countUser = count;
+            });
+        }
+        getCount();
+        function init_user() {
+            $("#first").datagrid({
+                //title:"用户管理",
+                method:"get",
+                pagination:true,
+                columns:[[
+                    {field:"uid",checkbox:true},
+                    {field:"account",title:"账号",width:200},
+                    {field:"roname",title:"角色",width:200}
+                ]],
+                toolbar:[
+                    {text:"添加",iconCls:"icon-add",handler:function () {toUser()}},
+                    {text:"修改",iconCls:"icon-edit",handler:function () {toEditUser()}},
+                    {text:"删除",iconCls:"icon-remove",handler:function () {deleteUsers()}},
+                    {text:"角色分配",iconCls:"icon-man",handler:function () {toAssignRoles()}}
+                ]
+            });
+            loadUser(1,5);
+        }
+        function loadUser(page,size) {
+            $.get("findUserRole",{page:page,size:size},function (data) {
+                $("#first").datagrid("loadData",data);
+                var pager = $("#first").datagrid("getPager");
+                pager.pagination({
+                    total:countUser,
+                    pageNumber:page,
+                    pageSize:size,
+                    pageList:[5,10,15],
+                    onSelectPage:function (a, b) {
+                        loadUser(a,b);
+                    }
+                });
+            });
+        }
+        /*页面渲染完毕再调用*/
+        //$(init_user);
+            init_user();
+        //添加用户，此处添加和更新使用一个模态框，添加时的id设为0（id隐藏域）
+        function toUser() {
+            $("#form_user_add").form("load",{
+                uid:0,
+                account:"",
+                pwd:""
+            });
+            $("#window_user_add").window("open");
+        }
+        function saveUser() {
+            //提交到saveUser
+            $("#form_user_add").form("submit",{
+                success:function (d) {
+                    $("#first").datagrid("reload");
+                    $("#window_user_add").window("close");
+                }
+            });
+        }
+        /*function deleteUsers() {
+            alert("确定要删除     " + account + "?");
+            var rows = $("#first").datagrid('getSelected');
+            id = rows['id'];
+            $.ajax({
+                type:"post",
+                url:"deleteUser?id=" + id,
+                dataType:"json",
+                success:function(d) {
+                    $("#first").datagrid("reload");
+                }
+            });
+        }*/
+        //删除用户
+        function deleteUsers() {
+            var users = $("#first").datagrid("getSelections");
+
+            //定义数组
+            var ars = [];
+            for (var i=0;i<users.length;i++) {
+                ars[i] = users[i].uid;
+            }
+            //浏览器自带的json函数
+            var json = JSON.stringify(ars);
+            if(json.length != 0) {
+                $.ajax({
+                    url:"deleteUser",
+                    method:"post",
+                    data:json,
+                    contentType:"application/json",
+                    success:function (d) {
+                        $("#first").datagrid("reload");
+                    }
+                });
+            }else{
+                $.messager.alert("系统提示","请选择至少一条数据");
+            }
+        }
+        //修改用户信息
+        function toEditUser() {
+            //获取要修改的数据
+            var user = $("#first").datagrid("getSelected");
+            if(user) {
+                $("#form_user_add").form("load",{
+                    uid:user.uid,
+                    account:user.account,
+                    pwd:user.pwd
+                });
+                $("#window_user_add").window("open");
+            }else{
+                $.messager.alert("系统提示","请选择一条数据");
+            }
+        }
+
+        function toAssignRoles() {
+            $("#form_user_role").form("load",{
+
+            });
+            $("#form_user_role").datagrid({
+                title:"角色列表",
+                url:"findAllRole",
+                method:"get",
+                columns:[[
+                    {field:"roid",checkbox:true},
+                    {field:"roname",title:"角色",width:200}
+                ]]
+            });
+            $("#window_user_role").window("open");
+        }
+        function assignRoles() {
+            //获取角色，用户id
+            var role = $("#form_user_role").datagrid("getSelected");
+            var user = $("#first").datagrid("getSelected");
+            if (user){
+                $.ajax({
+                    url:"assignRole?uid=" + user.uid + "&roid=" + role.roid,
+                    method:"post",
+                    contentType:"application/json",
+                    success:function (d) {
+                        $("#first").datagrid("reload");
+                        $("#window_user_role").window("close");
+                    }
+                });
+            }else {
+                $.messager.alert("系统提示","请选择一个用户");
+            }
+        }
+    </script>
+

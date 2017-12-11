@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="css/icon.css">
+    <link rel="stylesheet" href="css/easyui.css">
+    <link rel="stylesheet" href="css/bootstrap.css">
+    <script src="js/jquery.js"></script>
+    <script src="js/easyui.js"></script>
+    <script src="js/easyui-lang-zh_CN.js"></script>
+    <script>
+        function init() {
+            $("#tree_left").tree({
+                /*点击事件*/
+                //onlyLeafCheck:true,
+               onClick:function (node) {
+                   //判断是否存在同名节点tab，返回值是boolean
+                   if($('#tree_left').tree('isLeaf',node.target)){
+                   var had = $("#main").tabs("exists",node.text);
+                   if (had) {
+                       $("#main").tabs("select",node.text);
+                   }else {
+                       //添加tab
+                       $("#main").tabs("add",{
+                           title:node.text,
+                           closable:true,
+                           href:node.url
+                       });
+                   }
+                   }
+               }
+            });
+        }
+        $(init);
+    </script>
+</head>
+<body>
+    <div class="easyui-layout" style="width: 100%;height: 700px;">
+        <div data-options="region:'north'" style="width: 100%;height: 100px;background-color: #8d8d8d"></div>
+        <div data-options="region:'west'" style="width: 200px;height: 100%">
+            <ul id="tree_left" class="easyui-tree" data-options="url:'findAllRes',method:'get'">
+
+            </ul>
+        </div>
+        <div id="main" class="easyui-tabs" data-options="region:'center'"></div>
+    </div>
+</body>
+</html>

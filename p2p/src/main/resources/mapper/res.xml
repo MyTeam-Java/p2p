@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.money.dao.ResDao">
+    <resultMap id="m1" type="com.money.entity.Res">
+        <result property="id" column="id"/>
+        <result property="text" column="text"/>
+        <result property="url" column="url"/>
+        <collection property="children" javaType="com.money.entity.Res">
+            <result property="id" column="r2_id"/>
+            <result property="text" column="r2_text"/>
+            <result property="url" column="r2_url"/>
+        </collection>
+    </resultMap>
+
+    <!--分配角色资源，使用在显示已有的资源-->
+    <select id="findResForRole" resultType="com.money.entity.Res">
+        SELECT * FROM resource
+    </select>
+    <select id="findAllRes" resultMap="m1">
+        select r1.id,r1.text,r1.url,r2.id as r2_id,r2.text as r2_text,r2.url as r2_url from resource r1
+        LEFT JOIN resource r2
+        on r2.parentId=r1.id
+        LEFT JOIN role_res rr
+        on rr.reid=r1.id
+        LEFT JOIN user_role ur
+        on ur.roid=rr.roid
+        where ur.uid=#{uid} AND r1.parentId=0
+    </select>
+    <!--查找所有，下拉列表-->
+    <select id="findAllResForComebox" resultMap="m1">
+        SELECT * FROM resource
+    </select>
+    <resultMap id="m2" type="com.money.vo.ResJson">
+        <result property="id" column="id"/>
+        <result property="text" column="text"/>
+        <result property="url" column="url"/>
+        <result property="_parentId" column="parentId"/>
+    </resultMap>
+    <select id="findAllResource" resultMap="m2">
+        SELECT * FROM resource limit #{start},#{size}
+    </select>
+    <!--获取总条数-->
+    <select id="getCountRes" resultType="int">
+        SELECT COUNT(text) FROM resource
+    </select>
+    <select id="findAllResForRole" resultMap="m1">
+         select r1.id,r1.text,r2.id as r2_id,r2.text as r2_text,r2.url as r2_url from resource r1
+        LEFT JOIN resource r2
+        on r2.parentId=r1.id WHERE r1.parentId=0
+    </select>
+
+    <!--增加资源-->
+    <insert id="saveRes" parameterType="com.money.entity.Res">
+        INSERT INTO resource(text,url,parentId) VALUES(#{text},#{url},#{parentId})
+    </insert>
+
+    <!--修改资源-->
+    <update id="updateRes" parameterType="com.money.entity.Res">
+        UPDATE resource SET text=#{text},url=#{url},parentId=#{parentId} WHERE id=#{id}
+    </update>
+</mapper>
